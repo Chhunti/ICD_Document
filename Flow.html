@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ICD-Document</title>
+    <!-- Font Awesome 6 (Free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <!-- main styles -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <!-- AUTH OVERLAY -->
+    <div class="auth-overlay" id="authOverlay" style="display:none;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>DocuFlow MPWT</h2>
+                <p>Sign in to access the document workflow system. New registrations are pending admin approval.</p>
+            </div>
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab active" id="authLoginTab">Login</button>
+                <button type="button" class="auth-tab" id="authRegisterTab">Register</button>
+            </div>
+            <div class="auth-forms">
+                <form id="loginForm" class="auth-form active">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary auth-submit">Login</button>
+                </form>
+                <form id="registerForm" class="auth-form">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="registerName" placeholder="Your full name" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="registerEmail" placeholder="you@example.com" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="registerPassword" placeholder="••••••••" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary auth-submit">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- CROP MODAL (for avatar) -->
+    <div class="modal-overlay" id="cropModal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-crop"></i> Crop Profile Photo</h3>
+                <button class="close-modal" id="closeCropModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+                    <div style="width:320px;flex:0 0 320px;">
+                        <canvas id="cropCanvas" width="320" height="320" style="width:320px;height:320px;background:#f6f8fa;border-radius:8px;display:block;"></canvas>
+                    </div>
+                    <div style="flex:1;min-width:220px;">
+                        <label>Zoom</label>
+                        <input type="range" id="cropZoom" min="0.5" max="3" step="0.01" value="1" />
+                        <div style="height:8px"></div>
+                        <label>Preview</label>
+                        <div id="cropPreview" style="width:120px;height:120px;border-radius:50%;overflow:hidden;background:#eee;display:flex;align-items:center;justify-content:center;"></div>
+                        <div style="height:12px"></div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-outline" id="cancelCropBtn">Cancel</button>
+                            <button class="btn btn-primary" id="saveCropBtn"><i class="fas fa-check"></i> Save Photo</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="font-size:0.85rem;color:var(--gray-600);">Drag the image to reposition. Use zoom to scale. The final avatar will be a circular crop.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIDEBAR OVERLAY (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <img src="image/MPWT LOGO.svg" alt="DocuFlow logo" class="sidebar-brand-logo">
+            <div>
+                <h1 class="name-title">International Cooperation Department<span>GDAF/MPWT</span></h1>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href="#" class="active" data-page="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="#" data-page="documents"><i class="fas fa-file-alt"></i> Documents</a>
+            <a href="#" data-page="reports"><i class="fas fa-chart-bar"></i> Reports</a>
+            <div class="nav-label" style="margin-top:20px;">Workflow</div>
+            <a href="#" data-page="workflow"><i class="fas fa-sitemap"></i> Workflow Status</a>
+            <a href="#" id="newDocNav"><i class="fas fa-plus-circle"></i> New Document</a>
+            <div class="nav-label" style="margin-top:20px;">Admin</div>
+            <a href="#" data-page="admin" id="adminNavLink"><i class="fas fa-user-shield"></i> Admin Panel</a>
+            <a href="#" data-page="account" id="accountNavLink" style="display:none;"><i class="fas fa-user-cog"></i> Account</a>
+        </nav>
+        <div class="sidebar-footer">
+            <i class="fas fa-building"></i>
+            <span>Ministry of Public Works & Transport</span>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main" id="mainApp" style="display:none;">
+        <!-- TOP BAR -->
+        <header class="topbar">
+            <div class="topbar-left">
+                    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+                    <button class="btn btn-outline btn-sm" id="navBackBtn" style="display:none;"><i class="fas fa-arrow-left"></i> Back</button>
+                    <h2 id="pageTitle">Dashboard <small>Overview</small></h2>
+                </div>
+            <div class="topbar-right">
+                <span class="date-badge"><i class="far fa-calendar-alt"></i> <span id="currentDate"></span></span>
+                <div class="user-badge" id="userBadge">
+                    <span id="loggedInUserName">Guest</span>
+                    <div class="avatar" id="userAvatar">G</div>
+                    <div class="user-menu" id="userMenu" aria-hidden="true">
+                        <div class="profile-header">
+                            <div class="profile-avatar"> <div class="avatar small" id="menuAvatar">G</div> </div>
+                            <div class="profile-info">
+                                <div id="menuUserName" class="profile-name">Guest</div>
+                                    <div id="menuUserPosition" class="profile-position">—</div>
+                            </div>
+                        </div>
+                        <div class="menu-sep"></div>
+                        <button type="button" class="user-menu-item" id="menuAccountSettings">Account Setting</button>
+                        <div class="menu-sep"></div>
+                        <button type="button" class="user-menu-item user-menu-logout" id="menuLogout">Log out</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT -->
+        <div class="page-content" id="pageContent">
+            <!-- Dashboard (default) -->
+            <div id="page-dashboard">
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card"><div class="stat-label">Total Documents</div><div class="stat-value" id="statTotal">0</div><i class="fas fa-files stat-icon"></i></div>
+                    <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value" id="statInProgress">0</div><i class="fas fa-spinner stat-icon"></i></div>
+                    <div class="stat-card"><div class="stat-label">On Hold</div><div class="stat-value" id="statPending">0</div><i class="fas fa-clock stat-icon"></i></div>
+                    <div class="stat-card"><div class="stat-label">Final Decisions</div><div class="stat-value" id="statDecision">0</div><i class="fas fa-gavel stat-icon"></i></div>
+                    <div class="stat-card"><div class="stat-label">Rejected</div><div class="stat-value" id="statRejected">0</div><i class="fas fa-ban stat-icon"></i></div>
+                    <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value" id="statCompleted">0</div><i class="fas fa-check-circle stat-icon"></i></div>
+                </div>
+
+                <div class="section-header">
+                    <h3><i class="fas fa-list-ul"></i> Recent Documents</h3>
+                    <div class="section-actions">
+                        <button class="btn btn-primary btn-sm" id="dashNewDoc"><i class="fas fa-plus"></i> New Document</button>
+                    </div>
+                </div>
+                <div class="doc-table-wrapper" id="dashboardTableWrapper">
+                    <!-- rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Documents page (hidden by default) -->
+            <div id="page-documents" style="display:none;">
+                <div class="section-header">
+                    <h3><i class="fas fa-file-alt"></i> All Documents</h3>
+                    <div class="section-actions">
+                        <button class="btn btn-primary btn-sm" id="docPageNew"><i class="fas fa-plus"></i> New Document</button>
+                        <button class="btn btn-outline btn-sm" id="selectDocsBtn"><i class="fas fa-check-square"></i> Select</button>
+                        <button class="btn btn-outline btn-sm" id="syncDocsBtn"><i class="fas fa-sync"></i> Sync to Sheet</button>
+                    </div>
+                </div>
+                <div class="filters-bar" id="filtersBar">
+                    <div class="filter-group">
+                        <label><i class="fas fa-filter"></i> Status</label>
+                        <select id="filterStatus">
+                            <option value="all">All</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="on-hold">On Hold</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="decision">Final Decision</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Origin</label>
+                        <select id="filterOrigin">
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchDocs" placeholder="Search title, ref, origin..." />
+                    </div>
+                    <button class="btn btn-outline btn-sm" id="clearFilters"><i class="fas fa-times"></i> Clear</button>
+                </div>
+                <div class="doc-table-wrapper" id="docTableWrapper">
+                    <!-- rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Workflow page -->
+            <div id="page-workflow" style="display:none;">
+                <div class="section-header">
+                    <h3><i class="fas fa-sitemap"></i> Workflow Status Overview</h3>
+                </div>
+                <div id="workflowOverview">
+                    <!-- rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Reports page -->
+            <div id="page-reports" style="display:none;">
+                <div class="section-header">
+                    <h3><i class="fas fa-chart-bar"></i> Reports &amp; Statistics</h3>
+                </div>
+                <div id="reportsContent">
+                    <!-- rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Admin page -->
+            <div id="page-admin" style="display:none;">
+                <div class="section-header">
+                    <h3><i class="fas fa-user-shield"></i> Admin Panel - User Management</h3>
+                </div>
+                <div style="background: #ffffff; margin-bottom: 20px; padding: 20px; border-radius: 8px;">
+                    <h4>Active Users</h4>
+                    <div id="activeUsersList" style="margin-top: 15px;">
+                    </div>
+                </div>
+                <div style="background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <div id="authAccountsList" style="margin-top: 15px;">
+                    </div>
+                </div>
+                <div style="background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <div id="pendingUsersList" style="margin-top: 15px;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-account" style="display:none;">
+                <div class="section-header">
+                    <h3><i class="fas fa-user-cog"></i> Account Information</h3>
+                    <div class="section-actions">
+                        <button class="btn btn-outline btn-sm" id="accountBackBtn"><i class="fas fa-arrow-left"></i> Back</button>
+                    </div>
+                </div>
+                <div class="account-settings-panel">
+                    <div class="account-settings-grid">
+                        <div class="account-profile-card">
+                            <div class="profile-avatar-preview" id="profilePhotoPreview" role="img" aria-label="Profile photo">
+                                <span id="profilePhotoInitial">A</span>
+                            </div>
+                            <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" />
+                            <label for="profilePhotoInput" class="btn btn-outline btn-sm"><i class="fas fa-upload"></i> Change photo</label>
+    
+                        </div>
+                        <div class="account-settings-form">
+                            <form id="accountForm" autocomplete="off">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Full Name</label>
+                                        <input type="text" id="accountName" placeholder="Your full name" required />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        <input type="email" id="accountEmail" readonly />
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Position</label>
+                                        <input type="text" id="accountPosition" placeholder="Your position" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Phone</label>
+                                        <input type="tel" id="accountPhone" placeholder="+855 12 345 678" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Birthday</label>
+                                    <input type="date" id="accountBirthday" />
+                                </div>
+                                <div class="account-section-divider"></div>
+                                <div class="section-subtitle">Change password</div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Current Password</label>
+                                        <input type="password" id="accountCurrentPassword" placeholder="••••••••" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>New Password</label>
+                                        <input type="password" id="accountNewPassword" placeholder="••••••••" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm New Password</label>
+                                    <input type="password" id="accountConfirmPassword" placeholder="••••••••" />
+                                </div>
+                                <div class="account-actions">
+                                    <button class="btn btn-primary" id="saveAccountBtn" type="submit"><i class="fas fa-save"></i> Save changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-user-view" style="display:none;">
+                <div class="account-settings-panel user-details-panel">
+                    <div class="user-details-header">
+                        <h3><i class="fas fa-user"></i> User Details</h3>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button class="btn btn-outline btn-sm" id="userViewResetPwdBtn"><i class="fas fa-key"></i> Reset Password</button>
+                            <button class="btn btn-primary" id="userViewBackBtn"><i class="fas fa-arrow-left"></i> Back</button>
+                        </div>
+                    </div>
+                    <div class="account-settings-grid">
+                        <div class="account-profile-card">
+                            <div class="profile-avatar-preview" id="userViewAvatar" role="img" aria-label="Profile photo">
+                                <span id="userViewInitial">U</span>
+                            </div>
+                            <p class="profile-note">Read-only view of user account information. Admins can reset passwords from the Admin panel.</p>
+                        </div>
+                        <div class="account-settings-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <div id="userViewName" class="readonly-field">—</div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <div id="userViewEmail" class="readonly-field email">—</div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Position</label>
+                                    <div id="userViewPosition" class="readonly-field">—</div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Role</label>
+                                    <div id="userViewRole" class="readonly-field">—</div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Phone</label>
+                                    <div id="userViewPhone" class="readonly-field">—</div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Birthday</label>
+                                    <div id="userViewBirthday" class="readonly-field">—</div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <div id="userViewStatus" class="readonly-field">—</div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Created</label>
+                                    <div id="userViewCreated" class="readonly-field">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    <!-- MODAL: Add / Edit Document -->
+    <div class="modal-overlay" id="docModal">
+        <div class="modal" style="max-width:760px;">
+            <div class="modal-header">
+                <h3 id="docModalTitle"><i class="fas fa-file-signature"></i> New Document</h3>
+                <button class="close-modal" id="closeDocModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Toolbar: New / Search / Save / Migrate -->
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--gray-200);">
+                    <button type="button" class="btn btn-outline btn-sm" id="newDocFormBtn"><i class="fas fa-plus"></i> New Document</button>
+                    <div style="display:flex;gap:6px;flex:1;min-width:200px;">
+                        <input type="text" id="searchRefInput" placeholder="Reference Number to load…" style="flex:1;padding:7px 12px;border-radius:8px;border:1px solid var(--gray-200);font-size:0.88rem;" />
+                        <button type="button" class="btn btn-outline btn-sm" id="searchRefBtn"><i class="fas fa-search"></i> Load</button>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" id="migrateDataBtn" title="Migrate old workflow data to new column format"><i class="fas fa-exchange-alt"></i> Migrate</button>
+                </div>
+
+                <form id="docForm" autocomplete="off">
+                    <input type="hidden" id="editDocId" />
+
+                    <!-- Row 1: Title -->
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1;">
+                            <label>Document Title <span class="required">*</span></label>
+                            <input type="text" id="docTitle" placeholder="e.g. Procurement Request 2026-01" required />
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Reference + Origin -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Reference Number <span class="required">*</span></label>
+                            <input type="text" id="docRef" placeholder="e.g. MPWT/ADM/2026/001" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Origin / Source <span class="required">*</span></label>
+                            <input type="text" id="docOrigin" placeholder="e.g. Department of Planning" required />
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Date + In Charge -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date of Entry <span class="required">*</span></label>
+                            <input type="date" id="docEntryDate" required />
+                        </div>
+                        <div class="form-group">
+                            <label>In Charge Of</label>
+                            <input type="text" id="docInCharge" placeholder="Person or team responsible" />
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <label>Description / Summary</label>
+                        <textarea id="docDescription" placeholder="Brief summary of the document content..." rows="2"></textarea>
+                    </div>
+
+                    <!-- Google Drive Attachments -->
+                    <div class="form-group">
+                        <label>Attach PDF (optional)</label>
+                        <div class="file-picker">
+                            <button type="button" class="btn btn-primary file-picker-button" id="pdfFileButton"><i class="fas fa-plus"></i> Choose PDF</button>
+                            <input type="file" id="pdfFileInput" accept=".pdf" hidden />
+                            <div id="pdfFileStatus" class="file-picker-status">No file chosen</div>
+                            <div id="pdfFileLinkArea" class="file-picker-meta"><span style="color:var(--gray-500);">No PDF saved in Drive yet.</span></div>
+                            <div id="pdfFilePreviewArea" class="file-picker-preview" style="display:none;"></div>
+                            <button type="button" id="pdfFileRemove" class="btn btn-outline btn-sm file-picker-remove" style="display:none;width:max-content;"><i class="fas fa-trash"></i> Remove</button>
+                        </div>
+                    </div>
+                    <!-- Work Process selector -->
+                    <div style="border-top:1px solid var(--gray-200);margin:14px 0 12px;padding-top:14px;">
+                        <div class="form-row" style="align-items:flex-end;">
+                            <div class="form-group" style="flex:1;">
+                                <label><i class="fas fa-sitemap" style="margin-right:5px;"></i>Work Process <span class="required">*</span></label>
+                                <select id="docWorkProcess">
+                                    <option value="">Select Process</option>
+                                    <option value="To_Director">To Director</option>
+                                    <option value="To_Director_General">To Director General</option>
+                                    <option value="To_Specific_Leader">To Specific Leader</option>
+                                    <option value="To_Minister">To Minister</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="leaderNameGroup" style="flex:1;display:none;">
+                                <label id="leaderNameLabel">Leader Name</label>
+                                <input type="text" id="docLeaderName" placeholder="Enter leader / minister name" />
+                            </div>
+                        </div>
+
+                        <div class="form-group status-short-group" style="margin-top:8px;">
+                            <label><i class="fas fa-tasks" style="margin-right:5px;"></i>Document Status</label>
+                            <select id="docStatus">
+                                <option value="in-progress">In Progress</option>
+                                <option value="on-hold">On Hold</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="decision">Final Decision</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Hidden legacy workflow fields kept for backward compat -->
+                    <div style="display:none;">
+                        <input type="text" id="wfAdminStatus"     value="pending" />
+                        <input type="text" id="wfDGStatus"         value="pending" />
+                        <input type="text" id="wfCabinetStatus"   value="pending" />
+                        <input type="text" id="wfMinisterStatus"  value="pending" />
+                        <input type="text" id="wfAdminNotes" />
+                        <input type="text" id="wfDGNotes" />
+                        <input type="text" id="wfCabinetNotes" />
+                        <input type="text" id="wfMinisterNotes" />
+                        <input type="text" id="wfMinisterDecision" />
+                    </div>
+                </form>
+
+                <!-- Dynamic workflow steps rendered here -->
+                <div class="workflow-detail" id="workflowDetailForm">
+                    <h4><i class="fas fa-sitemap"></i> Workflow Status</h4>
+                    <div id="workflowStepsForm">
+                        <p style="color:var(--gray-400);font-size:0.9rem;">Select a Work Process above to see the approval steps.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelDocModal">Cancel</button>
+                <button class="btn btn-primary" id="saveDocument"><i class="fas fa-save"></i> Save Document</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: View Document (read-only) -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-alt"></i> Document Details</h3>
+                <button class="close-modal" id="closeViewModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="viewModalBody">
+                <!-- rendered by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="closeViewModalBtn">Close</button>
+                <button class="btn btn-primary" id="editFromView"><i class="fas fa-edit"></i> Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    
+    <script src="script.js"></script>
+</body>
+</html>
